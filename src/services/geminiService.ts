@@ -1,8 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 // @ts-ignore
-const apiKey = typeof window !== 'undefined' && window.process?.env?.GEMINI_API_KEY 
-  ? window.process.env.GEMINI_API_KEY 
+const apiKey = typeof window !== 'undefined' && window.process?.env?.VITE_GEMINI_API_KEY 
+  ? window.process.env.VITE_GEMINI_API_KEY 
   : "";
 
 const ai = new GoogleGenAI({ apiKey });
