@@ -1,0 +1,7 @@
+{
+  "name": "Bouldering AI",
+  "description": "Analyze bouldering routes from multiple angles to get accurate grade estimations and beta descriptions.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
