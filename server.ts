@@ -139,7 +139,7 @@ async function startServer() {
     app.use(express.static(distPath, { index: false }));
     app.get("*", (req, res) => {
       let template = fs.readFileSync(path.join(distPath, "index.html"), 'utf-8');
-      const envScript = `<script>window.process = window.process || {}; window.process.env = window.process.env || {}; window.process.env.VITE_GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};</script>`;
+      const envScript = `<script>window.process = window.process || {}; window.process.env = window.process.env || {}; window.process.env.VITE_GEMINI_API_KEY = ${JSON.stringify(process.env.VITE_GEMINI_API_KEY || '')};</script>`;
       template = template.replace('</head>', `${envScript}</head>`);
       res.send(template);
     });
