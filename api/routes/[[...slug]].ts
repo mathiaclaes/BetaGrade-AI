@@ -1,6 +1,6 @@
-import { getDb } from "../_db";
+import { supabase } from "../_supabase";
 
-export default function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   res.setHeader("Content-Type", "application/json");
 
   const url: string = req.url || "";
@@ -8,63 +8,68 @@ export default function handler(req: any, res: any) {
   const idMatch = url.match(/\/api\/routes\/(\d+)/);
   const id = idMatch ? idMatch[1] : null;
 
-  try {
-    const db = getDb();
-
-    if (req.method === "GET") {
-      const routes = db
-        .prepare("SELECT * FROM routes ORDER BY created_at DESC")
-        .all();
-      db.close();
-      res.status(200).json(routes);
+  if (req.method === "GET") {
+    const { data, error } = await supabase
+      .from("routes")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Fetch error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch routes" });
       return;
     }
-
-    if (req.method === "POST") {
-      const {
-        image1,
-        image2,
-        image3,
-        extra_info,
-        grade_range,
-        description,
-        official_grade,
-        is_verified,
-      } = req.body;
-      const stmt = db.prepare(`
-        INSERT INTO routes (image1, image2, image3, extra_info, grade_range, description, official_grade, is_verified)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-      const info = stmt.run(
-        image1,
-        image2,
-        image3,
-        extra_info,
-        grade_range,
-        description,
-        official_grade || null,
-        is_verified ? 1 : 0
-      );
-      db.close();
-      res.status(200).json({ id: info.lastInsertRowid });
-      return;
-    }
-
-    if (req.method === "PATCH" && id) {
-      const { official_grade } = req.body;
-      const stmt = db.prepare(
-        "UPDATE routes SET official_grade = ? WHERE id = ?"
-      );
-      stmt.run(official_grade, id);
-      db.close();
-      res.status(200).json({ success: true });
-      return;
-    }
-
-    db.close();
-    res.status(405).json({ error: "Method not allowed" });
-  } catch (error: any) {
-    console.error("API error:", error);
-    res.status(500).json({ error: error.message || "Internal server error" });
+    res.status(200).json(data);
+    return;
   }
+
+  if (req.method === "POST") {
+    const {
+      image1,
+      image2,
+      image3,
+      extra_info,
+      grade_range,
+      description,
+      official_grade,
+      is_verified,
+    } = req.body;
+    const { data, error } = await supabase
+      .from("routes")
+      .insert({
+        image1,
+        image2,
+        image3,
+        extra_info,
+        grade_range,
+        description,
+        official_grade: official_grade || null,
+        is_verified: is_verified ? 1 : 0,
+      })
+      .select("id")
+      .single();
+    if (error) {
+      console.error("Insert error:", error);
+      res.status(500).json({ error: error.message || "Failed to save route" });
+      return;
+    }
+    res.status(200).json({ id: data.id });
+    return;
+  }
+
+  if (req.method === "PATCH" && id) {
+    const { official_grade } = req.body;
+    const { error } = await supabase
+      .from("routes")
+      .update({ official_grade })
+      .eq("id", id);
+    if (error) {
+      console.error("Update error:", error);
+      res.status(500).json({ error: error.message || "Failed to update grade" });
+      return;
+    }
+    res.status(200).json({ success: true });
+    return;
+  }
+
+  res.status(405).json({ error: "Method not allowed" });
 }
