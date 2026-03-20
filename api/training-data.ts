@@ -1,4 +1,4 @@
-import { supabase } from "./_supabase";
+import { getSupabase } from "./_supabase";
 
 export default async function handler(req: any, res: any) {
   res.setHeader("Content-Type", "application/json");
@@ -8,17 +8,22 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const { data, error } = await supabase
-    .from("routes")
-    .select("grade_range, official_grade, extra_info, description")
-    .or("is_verified.eq.1,official_grade.not.is.null")
-    .limit(10);
+  try {
+    const { data, error } = await getSupabase()
+      .from("routes")
+      .select("grade_range, official_grade, extra_info, description")
+      .or("is_verified.eq.1,official_grade.not.is.null")
+      .limit(10);
 
-  if (error) {
-    console.error("Training data error:", error);
-    res.status(500).json({ error: error.message || "Failed to fetch training data" });
-    return;
+    if (error) {
+      console.error("Training data error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch training data" });
+      return;
+    }
+
+    res.status(200).json(data);
+  } catch (err: any) {
+    console.error("GET /training-data error:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
   }
-
-  res.status(200).json(data);
 }

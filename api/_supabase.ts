@@ -1,12 +1,17 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+let supabase: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY must be set."
-  );
+export function getSupabase(): SupabaseClient {
+  if (!supabase) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      throw new Error("Missing required Supabase credentials");
+    }
+
+    supabase = createClient(url, key);
+  }
+  return supabase;
 }
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
