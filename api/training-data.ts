@@ -1,6 +1,6 @@
-import { getDb } from "./_db";
+import { supabase } from "./_supabase";
 
-export default function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   res.setHeader("Content-Type", "application/json");
 
   if (req.method !== "GET") {
@@ -8,17 +8,17 @@ export default function handler(req: any, res: any) {
     return;
   }
 
-  try {
-    const db = getDb();
-    const examples = db
-      .prepare(
-        "SELECT grade_range, official_grade, extra_info, description FROM routes WHERE is_verified = 1 OR official_grade IS NOT NULL LIMIT 10"
-      )
-      .all();
-    db.close();
-    res.status(200).json(examples);
-  } catch (error: any) {
+  const { data, error } = await supabase
+    .from("routes")
+    .select("grade_range, official_grade, extra_info, description")
+    .or("is_verified.eq.1,official_grade.not.is.null")
+    .limit(10);
+
+  if (error) {
     console.error("Training data error:", error);
     res.status(500).json({ error: error.message || "Failed to fetch training data" });
+    return;
   }
+
+  res.status(200).json(data);
 }
