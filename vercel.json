@@ -1,14 +1,1 @@
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs20.x"
-    }
-  },
-  "rewrites": [
-    { "source": "/api/routes/(.*)", "destination": "/api/routes/[[...slug]]" },
-    { "source": "/api/routes", "destination": "/api/routes/[[...slug]]" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
+{\n  \"version\": 2,\n  \"functions\": {\n    \"api/\": {\n      \"runtime\": \"vercel/node\"\n    }\n  }\n}
