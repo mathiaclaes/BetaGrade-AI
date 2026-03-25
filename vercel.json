@@ -1,1 +1,1 @@
-{\n  \"version\": 2,\n  \"functions\": {\n    \"api/\": {\n      \"runtime\": \"vercel/node\"\n    }\n  }\n}
+{\n  "version": 2,\n  "functions": {\n    "api": {\n      "memory": 128,\n      "maxDuration": 10\n    }\n  }\n}
