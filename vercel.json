@@ -2,9 +2,4 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "now-nodejs@20.x"
-    }
-  }
 }
