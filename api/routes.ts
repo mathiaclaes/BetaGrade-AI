@@ -1,11 +1,23 @@
-// This file's content would be the same as api/routes/[[...slug]].ts, but with the specified import path update.
+// Handler code for the API routes
 
-// Import statements
-import { someFunction } from './routes/_supabase.js';
+import { createClient } from './routes/_supabase.js';
 
-// The rest of the content from api/routes/[[...slug]].ts follows here...
+const supabase = createClient();
 
-// Example function
-export function handleRequest(req, res) {
-    // Your code logic here
-}
+export const handler = async (event) => {
+    const { data, error } = await supabase
+        .from('your_table')
+        .select('*');
+
+    if (error) {
+        return {
+            statusCode: 500,
+            body: JSON.stringify(error),
+        };
+    }
+
+    return {
+        statusCode: 200,
+        body: JSON.stringify(data),
+    };
+};
