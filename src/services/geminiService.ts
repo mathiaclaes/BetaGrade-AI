@@ -10,6 +10,7 @@ const ai = new GoogleGenAI({ apiKey });
 export interface AnalysisResult {
   gradeRange: string;
   description: string;
+  isNotARoute?: boolean; // Easter egg flag
 }
 
 export async function resizeImage(base64Str: string, maxWidth = 1024, maxHeight = 1024): Promise<string> {
@@ -75,7 +76,57 @@ export async function analyzeBoulderingRoute(
     });
   }
 
-  const prompt = `
+  // First, detect if this is actually a climbing route
+  const detectionPrompt = `
+    You are a climbing route detector. Look at these 3 images and determine:
+    Is this a real bouldering/climbing route (a wall with holds designed for climbing)?
+    
+    Answer with ONLY a JSON object:
+    {
+      "isClimbingRoute": true or false,
+      "objectType": "if not a climbing route, what is it? (e.g., 'food', 'furniture', 'landscape')"
+    }
+  `;
+
+  let isActualRoute = true;
+  let detectedObject = "";
+
+  try {
+    const detectionResponse = await ai.models.generateContent({
+      model,
+      contents: {
+        parts: [...imageParts, { text: detectionPrompt }],
+      },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            isClimbingRoute: {
+              type: Type.BOOLEAN,
+              description: "Is this a real climbing route?",
+            },
+            objectType: {
+              type: Type.STRING,
+              description: "What object type is shown if not a climbing route",
+            },
+          },
+          required: ["isClimbingRoute", "objectType"],
+        },
+      },
+    });
+
+    const detectionText = detectionResponse.text;
+    const detectionResult = JSON.parse(detectionText);
+    isActualRoute = detectionResult.isClimbingRoute;
+    detectedObject = detectionResult.objectType;
+  } catch (err) {
+    console.error("Detection error:", err);
+    isActualRoute = true; // Default to treating as route if detection fails
+  }
+
+  // Now analyze it as if it were a route (for the funny description)
+  const analysisPrompt = `
     You are an expert bouldering route setter and grade estimator with a universal perspective. 
     I am providing 3 different angles of a bouldering route.
     Extra context from the user: ${extraInfo}
@@ -83,7 +134,7 @@ export async function analyzeBoulderingRoute(
 
     CRITICAL INSTRUCTIONS:
     1. IGNORE HOLD COLORS for difficulty estimation. Many gyms use color-coded circuits, but these are arbitrary and not universal. Do not "cheat" by using color as a proxy for grade.
-    2. FOCUS ON PHYSICALITY: Analyze hold geometry (crimps, slopers, jugs, pockets), wall inclination (slab vs overhang), distance between holds (span/reach), and the technical complexity of the movement (drop-knees, heel hooks, dynamic vs static).
+    2. FOCUS ON PHYSICALITY: Analyze hold geometry (crimps, slopers, jugs, pockets), wall inclination (slab vs overhang), distance between holds (span/reach), and the technical complexity of the movement.
     3. UNIVERSAL STANDARDS: Use the French Font bouldering grade system as a universal standard.
     4. LEARNING FROM EXAMPLES: Use the provided examples to understand how physical features translate to specific grades, maintaining a consistent and objective logic across different environments.
     
@@ -98,7 +149,7 @@ export async function analyzeBoulderingRoute(
     const response = await ai.models.generateContent({
       model,
       contents: {
-        parts: [...imageParts, { text: prompt }],
+        parts: [...imageParts, { text: analysisPrompt }],
       },
       config: {
         responseMimeType: "application/json",
@@ -123,7 +174,19 @@ export async function analyzeBoulderingRoute(
     if (!resultText) {
       throw new Error("No text response from Gemini");
     }
-    return JSON.parse(resultText);
+    
+    const parsedResult = JSON.parse(resultText);
+    
+    // If it's not an actual climbing route, modify the grade with a funny message
+    if (!isActualRoute) {
+      return {
+        gradeRange: `⚠️ NOT A CLIMBING ROUTE (${detectedObject})`,
+        description: parsedResult.description, // Keep the funny description!
+        isNotARoute: true,
+      };
+    }
+    
+    return parsedResult;
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     if (error.message?.includes("API key")) {
